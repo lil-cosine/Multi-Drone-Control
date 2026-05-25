@@ -1,11 +1,11 @@
-from omni.isaac.lab_tasks.direct.ant.ant_env import AntEnvCfg
+from isaaclab_tasks.direct.crab.crab_env import CrabEnv
 
-from animals.ant.pretrained_rl_ant_controller import PretrainedRlAgentController
+from animals.pretrained_rl_agent_controller import PretrainedRlAgentController
 from sim.isaac_env import IsaacEnv
 
 
 class AgentEnv(IsaacEnv):
-    def __init__(self, cfg: AntEnvCfg):
+    def __init__(self, cfg: CrabEnv):
         super().__init__(layout="grid")
 
         self.sim = self.world

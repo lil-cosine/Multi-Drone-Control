@@ -1,8 +1,8 @@
 import torch
-from omni.isaac.core.utils.torch.rotations import quat_conjugate
-from omni.isaac.lab.envs.utils.spaces import sample_space, spec_to_gym_space
-from omni.isaac.lab_tasks.direct.ant.ant_env import AntEnvCfg
-from omni.isaac.lab_tasks.direct.locomotion.locomotion_env import LocomotionEnv
+from isaaclab.utils.math import quat_conjugate
+from isaaclab.envs.utils.spaces import sample_space, spec_to_gym_space
+from isaaclab_tasks.direct.crab.crab_env import CrabEnvCfg
+from isaaclab_tasks.direct.locomotion.locomotion_env import LocomotionEnv
 
 from animals.art_controller import ArtController
 from sim.isaac_env import IsaacEnv
@@ -22,10 +22,13 @@ class RlAnimalController(ArtController, LocomotionEnv):
         return 1
 
     # Mostly copied from LocomotionEnv init and its parent DirectRLEnv init
-    def __init__(self, parent_env: IsaacEnv, cfg: AntEnvCfg):
+    def __init__(self, parent_env: IsaacEnv, cfg: CrabEnvCfg):
         super().__init__(parent_env, cfg.robot)
         self.env = parent_env
         self.cfg = cfg
+        
+        self.num_observations = cfg.observation_space
+        self.num_actions = cfg.action_space
 
         self.observation_space = spec_to_gym_space(self.cfg.observation_space)
         self.action_space = spec_to_gym_space(self.cfg.action_space)
@@ -36,7 +39,7 @@ class RlAnimalController(ArtController, LocomotionEnv):
         self.reset_buf = torch.zeros(self.num_envs, dtype=torch.bool, device=self.sim.device)
 
         self.sim = parent_env.world
-        self.action_scale = cfg.action_scale
+        self.action_scale = cfg.action_scale * 100
         self.joint_gears = torch.tensor(cfg.joint_gears, dtype=torch.float32, device=self.sim.device)
         self.motor_effort_ratio = torch.ones_like(self.joint_gears, device=self.sim.device)
 
@@ -85,8 +88,17 @@ class RlAnimalController(ArtController, LocomotionEnv):
         died = self.torso_position[:, 2] < self.cfg.termination_height
         return died, time_out
 
-    # This function is called when the crab reaches it's destination
-    # it is used to sample the next goal
+    def sample_next_goal(self, env_ids: torch.Tensor):
+        radius = 10.0 
+        angle = torch.rand(len(env_ids), device=self.sim.device) * 2 * 3.14159265359
+        
+        self.targets[env_ids, 0] = radius * torch.cos(angle)  # X
+        self.targets[env_ids, 1] = radius * torch.sin(angle)  # Y
+        self.targets[env_ids, 2] = 0.0  # Z (ground level)
+        
+        self.reached_destination[env_ids] = False
+        self.died[env_ids] = False
+
     def _reset_idx(self, env_ids: torch.Tensor | None = None):
         if env_ids is None or len(env_ids) == self.num_envs:
             env_ids = self.robot._ALL_INDICES

@@ -11,31 +11,46 @@ from drone.manipulators import ManipulatorState
 from sim.isaac_env import IsaacEnv
 
 
-def default_rl_env():
+def default_rl_env(pos, prim_path):
     cfg = CrabEnvCfg()
-    cfg.robot = get_crab_cfg(init_pos=(6.0, 0.0, None))  # Keep the z-position same as training environment
+    cfg.robot = get_crab_cfg(prim_path=prim_path, init_pos=pos)  # Keep the z-position same as training environment
 
     return cfg
 
 
 class CrabEnv(IsaacEnv):
     def __init__(self, cfg: CrabEnvCfg):
-        super().__init__(layout="water")
+        super().__init__(layout="grid")
 
         self.sim = self.world
-        self.controller = PretrainedRlAnimalController(parent_env=self, env_cfg=default_rl_env())
+
+        self.controllers = []
+
+        positions = [
+            (6.0, 0.0, None),
+            (8.0, 0.0, None),
+        ]
+
+        for i, pos in enumerate(positions):
+            prim_path = f'/World/crab_{i}'
+            controller = PretrainedRlAnimalController(parent_env=self, env_cfg=default_rl_env(pos, prim_path))
+            self.controllers.append(self.controller)
 
     def reset(self, seed=None, options=None):
         super().reset(seed, options)
-        self.controller.reset()
+        for controller in self.controllers:
+            controller.reset()
 
     def step(self, _):
-        self.controller.pre_step()
+        for controller in self.controllers:
+            controller.pre_step()
         super().step(None)
-        self.controller.post_step()
+        for controller in self.controllers:
+            controller.post_step()
 
     def post_init(self):
-        self.controller.post_init()
+        for controller in self.controllers:
+            controller.post_init()
 
 
 env_cfg = CrabEnvCfg()

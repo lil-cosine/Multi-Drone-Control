@@ -1,6 +1,6 @@
 import gym.spaces  # needed for rl-games incompatibility: https://github.com/Denys88/rl_games/issues/261
-import omni.isaac.lab_tasks  # noqa: F401
-from omni.isaac.lab_tasks.utils import load_cfg_from_registry
+import isaaclab_tasks  # noqa: F401
+from isaaclab_tasks.utils import load_cfg_from_registry
 from rl_games.common import env_configurations
 from rl_games.common.player import BasePlayer
 from rl_games.common.vecenv import IVecEnv

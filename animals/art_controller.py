@@ -1,11 +1,11 @@
-from omni.isaac.lab.assets import ArticulationCfg
+from isaaclab.assets import ArticulationCfg
 
 from sim.controller import Controller
 
 
 class ArtController(Controller):
     def __init__(self, parent_env, cfg: ArticulationCfg):
-        from omni.isaac.lab.assets import Articulation
+        from isaaclab.assets import Articulation
         self.env = parent_env
         self.sim = parent_env.sim
         self.robot = Articulation(cfg)

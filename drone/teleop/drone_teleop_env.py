@@ -2,41 +2,22 @@ from typing import Any
 
 from gymnasium.core import ObsType
 
-from animals.pretrained_rl_agent_controller import PretrainedRlAnimalController
-from drone.drone_controller_qgroundcontrol import DroneControllerQGroundControl
-from sim.isaac_env import IsaacEnv
+from drone.drone_env import DroneEnv
 
 
-class DroneTeleOpEnv(IsaacEnv):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.drone_controller = DroneControllerQGroundControl(parent_env=self)
-        self.animal_controller = PretrainedRlAnimalController(parent_env=self)
+class DroneTeleOpEnv(DroneEnv):
+    """
+    Teleoperation environment using QGroundControl/PX4.
 
-    # actual left and right joystick values are handled by the QGroundControl
-    # we only handle manipulator control here
-    # action space (3,): [joint1_pos, joint2_pos, gripper_close]
-    def step(self, action):
-        self.animal_controller.pre_step()
-        super().step(action)
-        self.drone_controller.post_step(action)
-        self.animal_controller.post_step()
-        return {}, 0.0, False, False, {}
+    Motor control is handled entirely by QGroundControl via Mavlink.
+    This env only processes manipulator actions (arm joints + gripper).
 
-    def post_init(self):
-        self.drone_controller.post_init()
-        self.animal_controller.post_init()
+    Action space (3,): [joint1_pos, joint2_pos, gripper_close]
+    """
 
-    def reset(
-            self,
-            *,
-            seed: int | None = None,
-            options: dict[str, Any] | None = None,
-    ) -> tuple[ObsType, dict[str, Any]]:
-        super().reset(seed=seed, options=options)
-        self.drone_controller.reset()
-        self.animal_controller.reset()
-        return {}, {}
-
-    def close(self):
-        self.drone_controller.close()
+    def __init__(self, drone_controller_factories=None, crab_controller_factories=None, **kwargs):
+        super().__init__(
+            drone_controller_factories=drone_controller_factories,
+            crab_controller_factories=crab_controller_factories,
+            **kwargs,
+        )

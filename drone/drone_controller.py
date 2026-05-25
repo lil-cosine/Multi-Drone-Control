@@ -1,85 +1,122 @@
 import os
 
 import numpy as np
-from pegasus.simulator.logic import PegasusInterface
-from pegasus.simulator.logic.backends import BackendConfig
-from pegasus.simulator.logic.vehicles.multirotor import Multirotor, MultirotorConfig
+
 from scipy.spatial.transform import Rotation
 
-from drone.drone_utils.pegasus_backend import PegasusBackend
-from drone.manipulators import Manipulators
+from pegasus.simulator.logic import PegasusInterface
+from pegasus.simulator.logic.vehicles.multirotor import (
+    Multirotor,
+    MultirotorConfig,
+)
+
 from sim.controller import Controller
 from utils import get_project_path
 
-class DirectBackend(PegasusBackend):
-    def __init__(self, config=BackendConfig()):
-        super().__init__(config)
-        self.last_action = np.zeros(4)
-
-    def input_reference(self):
-        return self.last_action
-
-
-"""
-Given a parent environment, this class creates a drone controller object that can be used to control the drone.
-"""
-
-
-def force_kill_px4():
-    import psutil
-    for proc in psutil.process_iter():
-        # check whether the process name matches
-        if proc.name() == "px4":
-            proc.kill()
-
 
 class DroneController(Controller):
-    backend: DirectBackend
 
-    def __init__(self, parent_env):
+    DEFAULT_INIT_POS = np.array([0.0, 0.0, 1.0])
+    DEFAULT_INIT_ROT = np.array([0.0, 0.0, 0.0])
+
+    def __init__(
+        self,
+        parent_env,
+        backend,
+        controller=None,
+        stage_prefix="/World/drone",
+        init_pos=None,
+        init_rot=None,
+    ):
         self.world = parent_env.world
+
         self.pg = PegasusInterface()
         self.pg._world = self.world
 
-        self._config_multirotor = MultirotorConfig()
+        self.backend = backend
+        self.controller = controller
+
+        self.stage_prefix = stage_prefix
+
+        init_pos = (
+            self.DEFAULT_INIT_POS
+            if init_pos is None
+            else np.array(init_pos)
+        )
+
+        init_rot = (
+            self.DEFAULT_INIT_ROT
+            if init_rot is None
+            else np.array(init_rot)
+        )
 
         config_multirotor = MultirotorConfig()
 
-        # There is a really annoying issue with previous px4 connections not being killed sometimes
-        # This is a workaround for that
-        force_kill_px4()
-        self.backend = self.get_backend()
-        config_multirotor.backends = [self.backend] if self.backend else []
-        self.stage_prefix = "/World/drone"
+        if backend is not None:
 
-        init_pos = np.array([-0.01035575, -0.01212927,  1.00196555])
-        init_rot = np.array([-0.608, -0.313, 9.425])
-        # noinspection PyTypeChecker
+            if hasattr(backend, "backend"):
+                config_multirotor.backends = [backend.backend]
+            else:
+                config_multirotor.backends = [backend]
+
         self.drone = Multirotor(
             self.stage_prefix,
-            os.path.join(get_project_path(), "assets", "drones", "iris_with_arm.usd"), #"assets/drones/iris_with_arm.usd",
+            os.path.join(
+                get_project_path(),
+                "assets",
+                "drones",
+                "iris.usd",
+            ),
             0,
             init_pos,
-            Rotation.from_euler("XYZ", init_rot, degrees=True).as_quat(),
+            Rotation.from_euler(
+                "XYZ",
+                init_rot,
+                degrees=True,
+            ).as_quat(),
             config=config_multirotor,
         )
 
-        self.manipulators = Manipulators(self.world, self.stage_prefix)
-
-    def get_backend(self):
-        return DirectBackend()
-
-    def reset(self, reset_pos=None):
-        pass
-
-    # action space (7,): [motor1, ..., motor4, joint1_pos, joint2_pos, gripper_close]
-    def post_step(self, action):
-        self.backend.last_action = action[:4]
-        self.manipulators.post_step(action[4:])
-        return
+    # ------------------------------------------------------------
+    # Lifecycle
+    # ------------------------------------------------------------
 
     def post_init(self):
-        self.manipulators.post_init()
+
+        if self.backend:
+            self.backend.start()
+
+        if self.controller:
+            self.controller.post_init()
+
+    def post_step(self, action=None):
+
+        if self.controller:
+            self.controller.post_step(action)
+
+    def reset(self, reset_pos=None):
+
+        if self.controller:
+            self.controller.reset(reset_pos)
 
     def close(self):
-        self.backend.stop()
+
+        if self.controller:
+            self.controller.close()
+
+        if self.backend:
+            self.backend.stop()
+
+    # ------------------------------------------------------------
+    # Runtime Controller Switching
+    # ------------------------------------------------------------
+
+    def set_controller(self, controller):
+
+        if self.controller:
+            self.controller.close()
+
+        self.controller = controller
+
+        if self.controller:
+            self.controller.post_init()

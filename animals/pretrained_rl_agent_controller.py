@@ -1,4 +1,5 @@
-from omni.isaac.lab_tasks.direct.ant.ant_env import AntEnvCfg
+import torch
+from isaaclab_tasks.direct.crab.crab_env import CrabEnvCfg
 
 from animals.crab.crab_rl_env import crab_env_cfg, crab_task_cfg
 from animals.rl_agent_controller import RlAnimalController
@@ -6,9 +7,22 @@ from sim.isaac_env import IsaacEnv
 
 
 class PretrainedRlAnimalController(RlAnimalController):
-    def __init__(self, parent_env: IsaacEnv,
-                 env_cfg: AntEnvCfg = crab_env_cfg(),
-                 task_cfg: (str, str) = crab_task_cfg()):
+    def __init__(
+        self,
+        parent_env: IsaacEnv,
+        init_pos: tuple = None,
+        prim_path: str = "/World/robot",
+        env_cfg: CrabEnvCfg = None,
+        task_cfg: tuple = None,
+    ):
+        if env_cfg is None:
+            env_cfg = crab_env_cfg(
+                init_pos=init_pos if init_pos is not None else (6.0, 0.0, None),
+                prim_path=prim_path,
+            )
+        if task_cfg is None:
+            task_cfg = crab_task_cfg()
+
         env_cfg.sim.device = parent_env.sim.device
         super().__init__(parent_env, env_cfg)
         self.env_cfg = env_cfg
@@ -20,7 +34,8 @@ class PretrainedRlAnimalController(RlAnimalController):
         self.last_obs = None
 
     def pre_decimation(self):
-        action = self.agent.get_action(self.last_obs)
+        obs = self.last_obs
+        action = self.agent.get_action(obs)
         self.actions = action.clone()
 
     def pre_step(self):
@@ -36,14 +51,12 @@ class PretrainedRlAnimalController(RlAnimalController):
             self.post_decimation()
 
     def post_decimation(self):
-        # -- update env counters (used for curriculum generation)
-        self.episode_length_buf += 1  # step in current episode
+        self.episode_length_buf += 1 
 
         self.reset_terminated, self.reset_time_outs = self.get_dones()
         self.reset_buf = self.reset_terminated or self.reset_time_outs
         reset_env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
 
-        # -- reset env if terminated/timed-out and log the episode information
         if len(reset_env_ids) > 0:
             self._reset_idx(reset_env_ids)
 

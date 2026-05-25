@@ -1,4 +1,4 @@
-from omni.isaac.lab.app import AppLauncher
+from isaaclab.app import AppLauncher
 
 _app = None
 
