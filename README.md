@@ -3,7 +3,7 @@ This project is a template for programatic control of multiple drones through Is
 
 - **Demo Video:** 
 
-[DROP HERE]
+https://github.com/user-attachments/assets/5acbb953-dfd2-4f62-a566-0aee957c9afb
 
 
 *Demo: Two crabs move on the left. The left two drone are controlled by a custom PID controller directly commanding the motors. The center two drones do not move. The right two drones are controlled by Mavlink commands.*
