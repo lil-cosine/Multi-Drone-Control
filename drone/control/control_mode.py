@@ -1,11 +1,3 @@
-# from enum import Enum
-
-
-# class ControlMode(Enum):
-#     DIRECT = "direct"
-#     PX4_OFFBOARD = "px4_offboard"
-#     PX4_QGC = "px4_qgc"
-
 from enum import Enum
 
 

@@ -1,27 +1,3 @@
-# import numpy as np
-
-
-# class DirectMotorController:
-
-#     def __init__(self, drone):
-#         self.drone = drone
-
-#     def post_init(self):
-#         pass
-
-#     def reset(self, reset_pos=None):
-#         pass
-
-#     def close(self):
-#         pass
-
-#     def post_step(self, action):
-
-#         if action is None:
-#             action = np.zeros(4)
-
-#         self.drone.backend.set_motor_command(action)
-
 import numpy as np
 
 
