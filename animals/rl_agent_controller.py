@@ -39,7 +39,8 @@ class RlAnimalController(ArtController, LocomotionEnv):
         self.reset_buf = torch.zeros(self.num_envs, dtype=torch.bool, device=self.sim.device)
 
         self.sim = parent_env.world
-        self.action_scale = cfg.action_scale * 100
+        self.action_scale = cfg.action_scale * cfg.action_scale_multiply
+        print("action scale:", self.action_scale)
         self.joint_gears = torch.tensor(cfg.joint_gears, dtype=torch.float32, device=self.sim.device)
         self.motor_effort_ratio = torch.ones_like(self.joint_gears, device=self.sim.device)
 

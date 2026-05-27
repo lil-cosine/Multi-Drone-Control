@@ -19,6 +19,8 @@ def crab_env_cfg(init_pos=(6.0, 0.0, None), prim_path="/World/robot"):
     """
     cfg = CrabEnvCfg()
     cfg.robot = get_crab_cfg(init_pos=init_pos, prim_path=prim_path)
+    cfg.action_scale_multiply = 100
+
 
     return cfg
 

@@ -68,6 +68,8 @@ from utils import (
     save_pickle,
 )
 
+from animals.crab.crab_rl_env import crab_env_cfg, crab_task_cfg
+from animals.ant.ant_rl_env import ant_env_cfg, ant_task_cfg
 
 # ============================================================
 # DRONE CONFIG
@@ -167,10 +169,10 @@ DRONE_CONFIGS = [
 
 
 # ============================================================
-# CRAB CONFIG
+# ANIMAL CONFIG
 # ============================================================
 #
-# Each entry spawns one pretrained RL crab agent.
+# Each entry spawns one pretrained RL animal agent.
 #
 # Fields
 # ------
@@ -178,9 +180,27 @@ DRONE_CONFIGS = [
 #                     managed by the agent itself (ground-contact dependent).
 # prim_path (str)   : USD prim path where the crab asset is loaded.
 
-CRAB_CONFIGS = [
-    {"init_pos": (6.0, 0.0, None), "prim_path": "/World/robot_0"},
-    {"init_pos": (6.0, 2.0, None), "prim_path": "/World/robot_1"},
+ANIMAL_CONFIGS = [
+    {
+        "type": "crab",
+        "init_pos": (6.0, 0.0, None),
+        "prim_path": "/World/robot_0",
+    },
+    {
+        "type": "crab",
+        "init_pos": (6.0, 2.0, None),
+        "prim_path": "/World/robot_1",
+    },
+    {
+        "type": "ant",
+        "init_pos": (8.0, 0.0, None),
+        "prim_path": "/World/robot_2",
+    },
+    {
+        "type": "ant",
+        "init_pos": (8.0, 2.0, None),
+        "prim_path": "/World/robot_3",
+    },
 ]
 
 
@@ -312,7 +332,12 @@ def make_drone_factory(cfg):
 # CRAB FACTORY
 # ============================================================
 
-def make_crab_factory(cfg):
+ANIMAL_REGISTRY = {
+    "crab": (crab_env_cfg, crab_task_cfg),
+    "ant": (ant_env_cfg, ant_task_cfg),
+}
+
+def make_animal_factory(cfg):
     """
     Return a factory function that constructs a PretrainedRlAnimalController
     for the given crab config dict.
@@ -324,12 +349,23 @@ def make_crab_factory(cfg):
         Callable[[env], PretrainedRlAnimalController]
     """
 
-    def factory(env):
+    animal_type = cfg["type"]
+    if animal_type not in ANIMAL_REGISTRY:
+        raise ValueError(f"Unknown animal type: '{animal_type}'. "
+                         f"Registered types: {list(ANIMAL_REGISTRY)}")
 
+    env_cfg_fn, task_cfg_fn = ANIMAL_REGISTRY[animal_type]
+
+    def factory(env):
         return PretrainedRlAnimalController(
             env,
             init_pos=cfg["init_pos"],
             prim_path=cfg["prim_path"],
+            env_cfg=env_cfg_fn(
+                init_pos=cfg["init_pos"],
+                prim_path=cfg["prim_path"],
+            ),
+            task_cfg=task_cfg_fn(),
         )
 
     return factory
@@ -342,9 +378,9 @@ drone_factories = [
     for cfg in DRONE_CONFIGS
 ]
 
-crab_factories = [
-    make_crab_factory(cfg)
-    for cfg in CRAB_CONFIGS
+animal_factories = [
+    make_animal_factory(cfg)
+    for cfg in ANIMAL_CONFIGS
 ]
 
 
@@ -359,7 +395,7 @@ crab_factories = [
 env = DroneTeleOpEnv(
     layout="grid",
     drone_controller_factories=drone_factories,
-    crab_controller_factories=crab_factories,
+    animal_controller_factories=animal_factories,
 )
 
 

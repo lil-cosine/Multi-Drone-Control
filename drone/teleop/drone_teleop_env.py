@@ -15,9 +15,9 @@ class DroneTeleOpEnv(DroneEnv):
     Action space (3,): [joint1_pos, joint2_pos, gripper_close]
     """
 
-    def __init__(self, drone_controller_factories=None, crab_controller_factories=None, **kwargs):
+    def __init__(self, drone_controller_factories=None, animal_controller_factories=None, **kwargs):
         super().__init__(
             drone_controller_factories=drone_controller_factories,
-            crab_controller_factories=crab_controller_factories,
+            animal_controller_factories=animal_controller_factories,
             **kwargs,
         )

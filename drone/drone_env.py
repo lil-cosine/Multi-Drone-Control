@@ -30,44 +30,44 @@ class DroneEnv(IsaacEnv):
     def __init__(
         self,
         drone_controller_factories=None,
-        crab_controller_factories=None,
+        animal_controller_factories=None,
         **kwargs,
     ):
         super().__init__(**kwargs)
 
         if drone_controller_factories is None:
             drone_controller_factories = [lambda env: DroneController(parent_env=env)]
-        if crab_controller_factories is None:
-            crab_controller_factories = [lambda env: PretrainedRlAnimalController(parent_env=env)]
+        if animal_controller_factories is None:
+            animal_controller_factories = [lambda env: PretrainedRlAnimalController(parent_env=env)]
 
         self.drone_controllers: List[DroneController] = [
             factory(self) for factory in drone_controller_factories
         ]
-        self.crab_controllers: List[PretrainedRlAnimalController] = [
-            factory(self) for factory in crab_controller_factories
+        self.animal_controllers: List[PretrainedRlAnimalController] = [
+            factory(self) for factory in animal_controller_factories
         ]
 
         self.drone_controller = self.drone_controllers[0] if self.drone_controllers else None
 
     def step(self, action):
-        for crab in self.crab_controllers:
-            crab.pre_step()
+        for animal in self.animal_controllers:
+            animal.pre_step()
 
         super().step(action)
 
         for drone in self.drone_controllers:
             drone.post_step(action)
 
-        for crab in self.crab_controllers:
-            crab.post_step()
+        for animal in self.animal_controllers:
+            animal.post_step()
 
         return {}, 0.0, False, False, {}
 
     def post_init(self):
         for drone in self.drone_controllers:
             drone.post_init()
-        for crab in self.crab_controllers:
-            crab.post_init()
+        for animal in self.animal_controllers:
+            animal.post_init()
 
     def reset(
         self,
@@ -78,8 +78,8 @@ class DroneEnv(IsaacEnv):
         super().reset(seed=seed, options=options)
         for drone in self.drone_controllers:
             drone.reset()
-        for crab in self.crab_controllers:
-            crab.reset()
+        for animal in self.animal_controllers:
+            animal.reset()
         return {}, {}
 
     def close(self):

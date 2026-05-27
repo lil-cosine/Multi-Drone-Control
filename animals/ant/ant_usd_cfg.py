@@ -1,16 +1,15 @@
 from __future__ import annotations
 from copy import deepcopy
-from isaaclab_assets.robots.crab import CRAB_CFG
+from isaaclab_assets.robots.ant import ANT_CFG
 
 
-def get_crab_cfg(init_pos=None, scale=None, prim_path="/World/robot"):
+def get_ant_cfg(init_pos=None, scale=None, prim_path="/World/robot"):
     if scale is not None and type(scale) is float:
         scale = [scale] * 3
 
-    config = deepcopy(CRAB_CFG)
+    config = deepcopy(ANT_CFG)
     config.prim_path = prim_path
-    config.action_scale_multiply = 100
-
+    config.action_scale_multiply = 10
     if scale:
         config.spawn.scale = scale
     if init_pos:
